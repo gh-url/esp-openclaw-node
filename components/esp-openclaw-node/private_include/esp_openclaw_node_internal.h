@@ -158,6 +158,8 @@ struct esp_openclaw_node {
     esp_openclaw_node_connect_request_source_t active_connect_source;
     size_t capability_count;
     char *capabilities[ESP_OPENCLAW_NODE_MAX_CAPABILITIES];
+    size_t scope_count;
+    char *scopes[ESP_OPENCLAW_NODE_MAX_SCOPES];
     size_t command_count;
     esp_openclaw_node_registered_command_t commands[ESP_OPENCLAW_NODE_MAX_COMMANDS];
 };
@@ -246,6 +248,9 @@ void esp_openclaw_node_add_registered_command_array(
 esp_err_t esp_openclaw_node_register_capability_internal(
     esp_openclaw_node_handle_t node,
     const char *capability);
+esp_err_t esp_openclaw_node_register_scope_internal(
+    esp_openclaw_node_handle_t node,
+    const char *scope);
 esp_err_t esp_openclaw_node_register_command_internal(
     esp_openclaw_node_handle_t node,
     const esp_openclaw_node_command_t *command);

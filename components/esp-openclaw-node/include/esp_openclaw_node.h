@@ -20,6 +20,8 @@ extern "C" {
 
 /** @brief Maximum number of capabilities a node can advertise. */
 #define ESP_OPENCLAW_NODE_MAX_CAPABILITIES CONFIG_ESP_OPENCLAW_NODE_MAX_CAPABILITIES
+/** @brief Maximum number of scopes a node can advertise. */
+#define ESP_OPENCLAW_NODE_MAX_SCOPES       CONFIG_ESP_OPENCLAW_NODE_MAX_SCOPES
 /** @brief Maximum number of commands a node can register. */
 #define ESP_OPENCLAW_NODE_MAX_COMMANDS CONFIG_ESP_OPENCLAW_NODE_MAX_COMMANDS
 
@@ -262,6 +264,24 @@ esp_err_t esp_openclaw_node_destroy(esp_openclaw_node_handle_t node);
 esp_err_t esp_openclaw_node_register_capability(
     esp_openclaw_node_handle_t node,
     const char *capability);
+
+/**
+ * @brief Advertise a scope string such as `operator.admin` or `operator.write`.
+ *
+ * @param[in] node Node handle.
+ * @param[in] scope Scope name to register.
+ *
+ * @return
+ *      - `ESP_OK` on success
+ *      - `ESP_ERR_INVALID_ARG` if `node` or `scope` is invalid
+ *      - `ESP_ERR_INVALID_STATE` if a session is active, a connect or
+ *        disconnect request is already in progress, or destroy has begun
+ *      - `ESP_ERR_NO_MEM` if the registry is full or the scope copy
+ *        cannot be allocated
+ */
+esp_err_t esp_openclaw_node_register_scope(
+    esp_openclaw_node_handle_t node,
+    const char *scope);
 
 /**
  * @brief Register a handler for one OpenClaw command.

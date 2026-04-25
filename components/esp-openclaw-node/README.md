@@ -11,7 +11,7 @@ The component provides:
 - Device identity generation and persistence
 - OpenClaw `connect.challenge` signing and `connect` request construction
 - setup-code, shared-token, password, no-auth, and saved-session connect paths
-- capability and command advertisement
+- capability, scope, and command advertisement
 - Handling `node.invoke.request` commands and sending `node.invoke.result` replies
 
 ## Contents
@@ -86,6 +86,7 @@ successful `hello-ok`
 ### Registration
 
 - `esp_openclaw_node_register_capability()`
+- `esp_openclaw_node_register_scope()`
 - `esp_openclaw_node_register_command()`
 
 ### Async Control
@@ -110,7 +111,7 @@ time, and terminal events.
 3. Initialize `esp_openclaw_node_config_t` with
   `esp_openclaw_node_config_init_default()`.
 4. Create the node with `esp_openclaw_node_create()`.
-5. Register capabilities and commands before the first accepted connect request.
+5. Register capabilities, scopes, and commands before the first accepted connect request.
 6. Submit one connect request with `esp_openclaw_node_request_connect()`.
 7. Wait for a terminal event before submitting the next control request.
 8. Destroy the node with `esp_openclaw_node_destroy()` when finished.
@@ -165,6 +166,7 @@ void app_main(void)
 
     ESP_ERROR_CHECK(esp_openclaw_node_create(&config, &node));
     ESP_ERROR_CHECK(esp_openclaw_node_register_capability(node, "device"));
+    ESP_ERROR_CHECK(esp_openclaw_node_register_scope(node, "operator.read"));
 
     esp_openclaw_node_command_t cmd = {
         .name = "device.info",
@@ -198,12 +200,14 @@ void app_main(void)
 - `tls_cert_pem = NULL`
 - `skip_cert_common_name_check = false`
 
-### Registering Capabilities And Commands
+### Registering Capabilities, Scopes, And Commands
 
 Register everything before the first connect request.
 
 ```c
 ESP_ERROR_CHECK(esp_openclaw_node_register_capability(node, "display"));
+ESP_ERROR_CHECK(esp_openclaw_node_register_scope(node, "operator.approvals"));
+ESP_ERROR_CHECK(esp_openclaw_node_register_scope(node, "operator.read"));
 
 esp_openclaw_node_command_t cmd = {
     .name = "display.show",
@@ -215,13 +219,13 @@ ESP_ERROR_CHECK(esp_openclaw_node_register_command(node, &cmd));
 
 Rules:
 
-- capabilities are plain strings
+- capabilities and scopes are plain strings
 - commands are plain strings plus a handler and optional context pointer
-- Duplicate capability or command names are ignored and return `ESP_OK`
+- Duplicate capability, scope, or command names are ignored and return `ESP_OK`
 - Registration is allowed only when no session is active and no connect or
   disconnect request is in flight
 - Registration and transport resource limits default to
-`ESP_OPENCLAW_NODE_MAX_CAPABILITIES`, `ESP_OPENCLAW_NODE_MAX_COMMANDS`,
+`ESP_OPENCLAW_NODE_MAX_CAPABILITIES`, `ESP_OPENCLAW_NODE_MAX_SCOPES`, `ESP_OPENCLAW_NODE_MAX_COMMANDS`,
 the internal work-queue length, and the component/WebSocket task and buffer
 sizes. These can be tuned in `menuconfig` under
 `Component config -> ESP OpenClaw Node`.
@@ -229,13 +233,14 @@ sizes. These can be tuned in `menuconfig` under
 Current `menuconfig` options and defaults:
 
 - `CONFIG_ESP_OPENCLAW_NODE_MAX_CAPABILITIES` = `16`
+- `CONFIG_ESP_OPENCLAW_NODE_MAX_SCOPES` = `8`
 - `CONFIG_ESP_OPENCLAW_NODE_MAX_COMMANDS` = `32`
 - `CONFIG_ESP_OPENCLAW_NODE_WORK_QUEUE_LENGTH` = `32`
 - `CONFIG_ESP_OPENCLAW_NODE_TASK_STACK_SIZE` = `8192`
 - `CONFIG_ESP_OPENCLAW_NODE_TRANSPORT_TASK_STACK_SIZE` = `8192`
 - `CONFIG_ESP_OPENCLAW_NODE_TRANSPORT_BUFFER_SIZE` = `2048`
 
-The component advertises capability names and command names only. It does not
+The component advertises capability names, scope names, and command names only. It does not
 currently send parameter schemas to the gateway.
 
 ### Command Handlers
@@ -476,7 +481,7 @@ Example `connect` from the node:
       "mode": "node"
     },
     "role": "node",
-    "scopes": [],
+    "scopes": ["operator.approvals", "operator.read", "operator.talk.secrets", "operator.write"],
     "caps": ["device", "wifi", "gpio"],
     "commands": [
       "device.info",

@@ -48,13 +48,35 @@ static bool send_connect_request(
         return false;
     }
 
+    /* Build scopes CSV for auth payload signing */
+    char scopes_csv[128] = {0};
+    {
+        size_t pos = 0;
+        for (size_t i = 0; i < node->scope_count && pos < sizeof(scopes_csv) - 1; ++i) {
+            if (i > 0 && pos < sizeof(scopes_csv) - 1) {
+                scopes_csv[pos++] = ',';
+            }
+            size_t len = strlen(node->scopes[i]);
+            if (pos + len >= sizeof(scopes_csv)) {
+                ESP_LOGE(ESP_OPENCLAW_NODE_TAG,
+                         "scopes CSV truncated at %u/%u, scope[%u]=%s dropped",
+                         (unsigned)pos, (unsigned)sizeof(scopes_csv),
+                         (unsigned)i, node->scopes[i]);
+                break;
+            }
+            memcpy(scopes_csv + pos, node->scopes[i], len);
+            pos += len;
+        }
+        scopes_csv[pos] = '\0';
+    }
+
     char *payload = NULL;
     esp_err_t err = esp_openclaw_node_identity_build_auth_payload_v3(
         &node->identity,
         node->config.client_id,
         node->config.client_mode,
         node->config.role,
-        "",
+        scopes_csv,
         signed_at_ms,
         material.signature_token,
         nonce,
@@ -115,7 +137,8 @@ static bool send_connect_request(
     cJSON_AddItemToObject(params, "client", client);
 
     cJSON_AddStringToObject(params, "role", node->config.role);
-    cJSON_AddItemToObject(params, "scopes", cJSON_CreateArray());
+    esp_openclaw_node_add_registered_string_array(
+        params, "scopes", node->scopes, node->scope_count);
     esp_openclaw_node_add_registered_string_array(
         params,
         "caps",
